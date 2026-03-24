@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Juego de memoria - Alimentos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(180deg, #fff7ed 0%, #fffbf7 100%);
+    }
+
+    .game-card {
+      perspective: 1000px;
+      aspect-ratio: 1 / 1;
+      cursor: pointer;
+    }
+
+    .game-card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.5s;
+      transform-style: preserve-3d;
+    }
+
+    .game-card.flipped .game-card-inner,
+    .game-card.matched .game-card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .game-card-face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 10px;
+      font-weight: 700;
+      border: 2px solid #fed7aa;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    }
+
+    .game-card-front {
+      background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+      color: white;
+      font-size: 2rem;
+    }
+
+    .game-card-back {
+      background: white;
+      color: #7c2d12;
+      transform: rotateY(180deg);
+      font-size: 1.1rem;
+    }
+
+    .game-card.matched .game-card-back {
+      background: #dcfce7;
+      border-color: #86efac;
+      color: #166534;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .confetti {
+      position: fixed;
+      width: 12px;
+      height: 12px;
+      top: -20px;
+      animation: fall linear forwards;
+      z-index: 70;
+    }
+
+    @keyframes fall {
+      to {
+        transform: translateY(110vh) rotate(720deg);
+      }
+    }
+  </style>
+</head>
+
+<body class="font-sans p-4 md:p-6">
+
+<div class="max-w-6xl mx-auto">
+
+  <div class="text-center mb-6">
+    <h1 class="text-4xl font-extrabold text-orange-600">🧠 Memoria: alimentos</h1>
+    <p id="studentLabel" class="text-orange-500 font-bold mt-2"></p>
+  </div>
+
+  <div class="bg-white border-2 border-orange-100 rounded-3xl p-5 shadow mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+      <div class="bg-orange-50 rounded-2xl p-4">
+        <div class="text-sm text-orange-500 font-bold">Intentos</div>
+        <div id="attemptsText" class="text-3xl font-extrabold text-orange-700">0</div>
+      </div>
+      <div class="bg-orange-50 rounded-2xl p-4">
+        <div class="text-sm text-orange-500 font-bold">Parejas</div>
+        <div id="pairsText" class="text-3xl font-extrabold text-orange-700">0 / 12</div>
+      </div>
+      <div class="bg-orange-50 rounded-2xl p-4">
+        <div class="text-sm text-orange-500 font-bold">Tiempo</div>
+        <div id="timeText" class="text-3xl font-extrabold text-orange-700">0 s</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-3 md:grid-cols-6 gap-4" id="gameGrid"></div>
+
+  <div class="text-center mt-6">
+    <button onclick="restartGame()" class="bg-orange-500 text-white px-6 py-3 rounded-xl font-bold">
+      🔄 Nueva partida
+    </button>
+  </div>
+
+  <div id="finalScreen" class="hidden mt-8 text-center bg-white p-8 rounded-3xl border-4 border-green-500">
+    <h2 class="text-3xl font-bold text-green-700 mb-4">🎉 ¡Completado!</h2>
+    <p id="finalText" class="text-lg mb-6"></p>
+
+    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+      <button onclick="restartGame()" class="bg-orange-500 text-white px-6 py-3 rounded-xl font-bold">
+        Jugar de nuevo
+      </button>
+      <button onclick="volverAlCampus()" class="bg-gray-800 text-white px-6 py-3 rounded-xl font-bold">
+        Volver al campus
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxvRt0-DL4gyjQ42Kfsn9lKBBllYwacF_UY_qkcGw-2zUZMJ0YJAF-CUoXFD8NER0efzg/exec";
+
+const VOCABULARY = [
+  { word: "pescado", emoji: "🐟" },
+  { word: "carne", emoji: "🥩" },
+  { word: "verdura", emoji: "🥦" },
+  { word: "fruta", emoji: "🍎" },
+
+  { word: "pan", emoji: "🥖" },
+  { word: "bocadillo", emoji: "🥖🧀" },
+  { word: "sándwich", emoji: "🥪" },
+
+  { word: "sopa", emoji: "🍲" },
+  { word: "ensalada", emoji: "🥗" },
+  { word: "hamburguesa", emoji: "🍔" },
+
+  { word: "huevos", emoji: "🥚" },
+  { word: "café", emoji: "☕" },
+  { word: "té", emoji: "🫖" },
+
+  { word: "agua", emoji: "💧" },
+  { word: "leche", emoji: "🥛" },
+
+  { word: "vino blanco", emoji: "🍾" },
+  { word: "vino tinto", emoji: "🍷" },
+  { word: "cerveza", emoji: "🍺" }
+];
+
+const TOTAL_PAIRS = 12;
+
+const datos = JSON.parse(sessionStorage.getItem("alumnoELE")) || {
+  n: "Anónimo",
+  a: "",
+  c: ""
+};
+
+document.getElementById("studentLabel").innerText =
+  `Estudiante: ${datos.n} ${datos.a}`;
+
+// ---------- ENVÍO GOOGLE SHEET ----------
+function enviarASheetSinBloquear(payload) {
+  const data = JSON.stringify(payload);
+
+  try {
+    if (navigator.sendBeacon) {
+      const blob = new Blob([data], { type: "text/plain;charset=utf-8" });
+      navigator.sendBeacon(WEBAPP_URL, blob);
+      return;
+    }
+  } catch (error) {
+    console.error("Error con sendBeacon:", error);
+  }
+
+  try {
+    fetch(WEBAPP_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: data
+    }).catch(err => console.error("Error fetch:", err));
+  } catch (error) {
+    console.error("Error al enviar a Google Sheet:", error);
+  }
+}
+
+function registrarEntradaEjercicio(nombreActividad) {
+  enviarASheetSinBloquear({
+    nombre: datos.n || "",
+    apellido: datos.a || "",
+    clase: datos.c || "",
+    actividad: `Entrada ejercicio - ${nombreActividad}`,
+    nota: "Entrada",
+    porcentaje: "Inicio"
+  });
+}
+
+function enviarResultadoEjercicio(nombreActividad, nota, detalle) {
+  enviarASheetSinBloquear({
+    nombre: datos.n || "",
+    apellido: datos.a || "",
+    clase: datos.c || "",
+    actividad: nombreActividad,
+    nota: nota,
+    porcentaje: detalle
+  });
+}
+
+function volverAlCampus() {
+  window.location.href = "index.html";
+}
+
+// ---------- JUEGO ----------
+let cards = [];
+let selected = [];
+let matches = 0;
+let attempts = 0;
+let startTime = null;
+let timerInterval = null;
+let resultSent = false;
+
+function shuffle(a) {
+  return [...a].sort(() => Math.random() - 0.5);
+}
+
+function updateStats() {
+  document.getElementById("attemptsText").innerText = attempts;
+  document.getElementById("pairsText").innerText = `${matches} / ${TOTAL_PAIRS}`;
+
+  const time = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
+  document.getElementById("timeText").innerText = `${time} s`;
+}
+
+function startTimer() {
+  if (timerInterval) return;
+
+  timerInterval = setInterval(() => {
+    updateStats();
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+}
+
+function build() {
+  const selectedWords = shuffle(VOCABULARY).slice(0, TOTAL_PAIRS);
+  let deck = [];
+
+  selectedWords.forEach((item, i) => {
+    deck.push({ id: i, type: "word", content: item.word, key: item.word });
+    deck.push({ id: i, type: "emoji", content: item.emoji, key: item.word });
+  });
+
+  cards = shuffle(deck).map((c, i) => ({
+    ...c,
+    uid: i,
+    flip: false,
+    match: false
+  }));
+
+  render();
+  updateStats();
+}
+
+function render() {
+  const grid = document.getElementById("gameGrid");
+  grid.innerHTML = "";
+
+  cards.forEach(c => {
+    const el = document.createElement("div");
+    el.className = `game-card ${c.flip ? "flipped" : ""} ${c.match ? "matched" : ""}`;
+    el.onclick = () => flip(c.uid);
+
+    el.innerHTML = `
+      <div class="game-card-inner">
+        <div class="game-card-face game-card-front">?</div>
+        <div class="game-card-face game-card-back">
+          <span class="${c.type === 'emoji' ? 'text-7xl leading-none' : 'text-base md:text-lg'}">${c.content}</span>
+        </div>
+      </div>
+    `;
+
+    grid.appendChild(el);
+  });
+}
+
+function flip(id) {
+  const c = cards.find(x => x.uid === id);
+  if (!c || c.flip || c.match || selected.length === 2) return;
+
+  if (!startTime) {
+    startTime = Date.now();
+    startTimer();
+  }
+
+  c.flip = true;
+  selected.push(c);
+  render();
+
+  if (selected.length === 2) {
+    attempts++;
+    updateStats();
+
+    const [a, b] = selected;
+
+    if (a.key === b.key && a.type !== b.type) {
+      a.match = true;
+      b.match = true;
+      matches++;
+      selected = [];
+
+      if (matches === TOTAL_PAIRS) {
+        finish();
+      } else {
+        render();
+      }
+    } else {
+      setTimeout(() => {
+        a.flip = false;
+        b.flip = false;
+        selected = [];
+        render();
+      }, 800);
+    }
+  }
+}
+
+function launchConfetti() {
+  const colors = ["#f97316", "#22c55e", "#3b82f6", "#eab308", "#ec4899"];
+  for (let i = 0; i < 120; i++) {
+    const c = document.createElement("div");
+    c.className = "confetti";
+    c.style.left = Math.random() * 100 + "vw";
+    c.style.background = colors[Math.floor(Math.random() * colors.length)];
+    c.style.animationDuration = (2 + Math.random() * 2) + "s";
+    c.style.opacity = 0.7 + Math.random() * 0.3;
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 4500);
+  }
+}
+
+function finish() {
+  stopTimer();
+
+  const time = Math.round((Date.now() - startTime) / 1000);
+
+  let score = Math.max(0, 10 - (attempts - TOTAL_PAIRS) * 0.3);
+  score = Math.round(score * 100) / 100;
+
+  if (!resultSent) {
+    resultSent = true;
+    enviarResultadoEjercicio(
+      "A1 - Memoria alimentos",
+      `${score}/10`,
+      `intentos:${attempts} tiempo:${time}s parejas:${matches}/${TOTAL_PAIRS}`
+    );
+  }
+
+  document.getElementById("gameGrid").classList.add("hidden");
+  document.getElementById("finalScreen").classList.remove("hidden");
+  document.getElementById("finalText").innerText =
+    `Intentos: ${attempts} | Tiempo: ${time}s | Nota: ${score}/10`;
+
+  launchConfetti();
+}
+
+function restartGame() {
+  stopTimer();
+  cards = [];
+  selected = [];
+  matches = 0;
+  attempts = 0;
+  startTime = null;
+  resultSent = false;
+
+  document.getElementById("gameGrid").classList.remove("hidden");
+  document.getElementById("finalScreen").classList.add("hidden");
+
+  build();
+}
+
+// ---------- INICIO ----------
+window.addEventListener("load", () => {
+  registrarEntradaEjercicio("A1 - Memoria alimentos");
+  build();
+});
+</script>
+
+</body>
+</html>

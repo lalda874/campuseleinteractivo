@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conectores A1 - Rutina diaria</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(180deg, #fff7ed 0%, #fffbf7 100%);
+    }
+
+    .card {
+      background: white;
+      border-radius: 24px;
+      padding: 24px;
+      border: 2px solid #ffedd5;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    }
+
+    .word-bank-btn {
+      border: 2px solid #fdba74;
+      background: #fff7ed;
+      color: #9a3412;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-weight: 700;
+      transition: 0.2s;
+    }
+
+    .word-bank-btn:hover {
+      background: #ffedd5;
+      transform: translateY(-1px);
+    }
+
+    .blank-input {
+      width: 120px;
+      max-width: 100%;
+      border: none;
+      border-bottom: 3px solid #fb923c;
+      background: #fff7ed;
+      padding: 4px 8px;
+      text-align: center;
+      font-weight: 700;
+      color: #7c2d12;
+      outline: none;
+      border-radius: 8px 8px 0 0;
+    }
+
+    .blank-input.correct {
+      background: #dcfce7;
+      border-bottom-color: #22c55e;
+      color: #166534;
+    }
+
+    .blank-input.incorrect {
+      background: #fee2e2;
+      border-bottom-color: #ef4444;
+      color: #991b1b;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body class="font-sans text-stone-700 p-4 md:p-6">
+
+  <div class="max-w-4xl mx-auto">
+    <div id="cabecera" class="text-center mb-8">
+      <h1 class="text-4xl md:text-5xl font-extrabold text-orange-600 mb-3">
+        ✍️ Conectores A1: rutina diaria
+      </h1>
+      <p id="studentLabel" class="text-orange-500 font-bold mb-3"></p>
+      <p class="text-lg max-w-3xl mx-auto">
+        Completa el texto con los conectores del recuadro. Usa cada conector una sola vez.
+      </p>
+    </div>
+
+    <div class="card mb-6">
+      <h2 class="text-2xl font-extrabold text-orange-700 mb-4">Banco de palabras</h2>
+      <div id="wordBank" class="flex flex-wrap gap-3"></div>
+      <p class="text-sm text-stone-500 mt-4">
+        Haz clic en un conector y después en un hueco, o escríbelo directamente en el hueco.
+      </p>
+    </div>
+
+    <div class="card mb-6">
+      <h2 class="text-2xl font-extrabold text-orange-700 mb-4">Texto</h2>
+
+      <div class="text-lg leading-10">
+        <input id="b1" class="blank-input" type="text" autocomplete="off">
+        me levanto temprano
+        <input id="b2" class="blank-input" type="text" autocomplete="off">
+        desayuno.
+        <br><br>
+
+        <input id="b3" class="blank-input" type="text" autocomplete="off">
+        voy a clase
+        <input id="b4" class="blank-input" type="text" autocomplete="off">
+        estudio español.
+        <br><br>
+
+        Me gusta el español
+        <input id="b5" class="blank-input" type="text" autocomplete="off">
+        es interesante.
+        <br><br>
+
+        <input id="b6" class="blank-input" type="text" autocomplete="off">
+        hago los deberes.
+        <br><br>
+
+        <input id="b7" class="blank-input" type="text" autocomplete="off">
+        vuelvo a casa y descanso.
+      </div>
+    </div>
+
+    <div class="card mb-6">
+      <div class="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+        <div class="text-lg font-bold text-orange-700">
+          Resultado: <span id="scoreText">0 / 7</span>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <button onclick="comprobar()" class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-2xl font-bold">
+            Comprobar
+          </button>
+          <button onclick="mostrarSolucion()" class="bg-stone-700 hover:bg-stone-800 text-white px-6 py-3 rounded-2xl font-bold">
+            Ver solución
+          </button>
+          <button onclick="reiniciar()" class="bg-white border-2 border-orange-400 text-orange-700 px-6 py-3 rounded-2xl font-bold">
+            Reiniciar
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <button onclick="volverAlCampus()" class="bg-stone-800 hover:bg-stone-900 text-white px-6 py-3 rounded-2xl font-bold">
+          Volver al campus
+        </button>
+      </div>
+
+      <p id="feedback" class="mt-4 text-lg font-bold"></p>
+    </div>
+
+    <div id="solutionBox" class="card hidden">
+      <h2 class="text-2xl font-extrabold text-green-700 mb-4">✅ Solución</h2>
+      <div class="text-lg leading-9 mb-6">
+        Primero me levanto temprano y desayuno.<br><br>
+        Después voy a clase y estudio español.<br><br>
+        Me gusta el español porque es interesante.<br><br>
+        Luego hago los deberes.<br><br>
+        Al final vuelvo a casa y descanso.
+      </div>
+
+      <button onclick="volverAlCampus()" class="bg-stone-800 hover:bg-stone-900 text-white px-6 py-3 rounded-2xl font-bold">
+        Volver al campus
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyt4Bmol2cThS30X6vnvvcem9DKET3wFWxHDi4ggALV2sOqAA8iLCCACsGd_TCk2vpm/exec";
+
+    const ANSWERS = {
+      b1: "primero",
+      b2: "y",
+      b3: "después",
+      b4: "y",
+      b5: "porque",
+      b6: "luego",
+      b7: "al final"
+    };
+
+    const WORD_BANK = ["primero", "después", "luego", "al final", "y", "porque"];
+    const inputs = ["b1", "b2", "b3", "b4", "b5", "b6", "b7"];
+
+    let selectedWord = "";
+    let resultadoEnviado = false;
+
+    const datos = JSON.parse(sessionStorage.getItem("alumnoELE")) || {};
+    const usuarioActual = datos.usuarioReal || "Anónimo";
+    const nombreCompleto = `${datos.nombre || ""} ${datos.apellido || ""}`.trim();
+
+    document.getElementById("studentLabel").innerText =
+      `Estudiante: ${nombreCompleto || usuarioActual}`;
+
+    function enviarASheet(payload) {
+      return fetch(WEBAPP_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      })
+      .then(r => r.json())
+      .then(res => {
+        console.log("Respuesta Apps Script:", res);
+        return res;
+      })
+      .catch(err => {
+        console.error("Error al enviar:", err);
+        return { ok: false, error: String(err) };
+      });
+    }
+
+    async function registrarEntradaEjercicio(nombreActividad) {
+      await enviarASheet({
+        type: "log",
+        usuario: usuarioActual,
+        actividad: nombreActividad,
+        tipo: "Entrada",
+        detalle: "Inicio"
+      });
+    }
+
+    async function enviarResultadoEjercicio(nombreActividad, nota, detalle) {
+      await enviarASheet({
+        type: "nota",
+        usuario: usuarioActual,
+        actividad: nombreActividad,
+        nota: nota,
+        detalle: detalle
+      });
+    }
+
+    async function registrarProgreso(nombreActividad) {
+      await enviarASheet({
+        type: "progreso",
+        usuario: usuarioActual,
+        actividad: nombreActividad
+      });
+    }
+
+    function volverAlCampus() {
+      window.location.href = "index.html";
+    }
+
+    function buildWordBank() {
+      const bank = document.getElementById("wordBank");
+      bank.innerHTML = "";
+
+      WORD_BANK.forEach(word => {
+        const btn = document.createElement("button");
+        btn.className = "word-bank-btn";
+        btn.textContent = word;
+        btn.type = "button";
+        btn.onclick = () => {
+          selectedWord = word;
+          document.querySelectorAll(".word-bank-btn").forEach(b => {
+            b.classList.remove("ring-4", "ring-orange-300");
+          });
+          btn.classList.add("ring-4", "ring-orange-300");
+        };
+        bank.appendChild(btn);
+      });
+    }
+
+    function attachInputEvents() {
+      inputs.forEach(id => {
+        const input = document.getElementById(id);
+
+        input.addEventListener("focus", () => {
+          if (selectedWord) {
+            input.value = selectedWord;
+          }
+        });
+
+        input.addEventListener("input", () => {
+          input.classList.remove("correct", "incorrect");
+          document.getElementById("feedback").innerText = "";
+        });
+      });
+    }
+
+    function normalizar(texto) {
+      return texto.trim().toLowerCase();
+    }
+
+    async function comprobar() {
+      let aciertos = 0;
+
+      inputs.forEach(id => {
+        const input = document.getElementById(id);
+        const valor = normalizar(input.value);
+        const correcto = ANSWERS[id];
+
+        input.classList.remove("correct", "incorrect");
+
+        if (valor === correcto) {
+          input.classList.add("correct");
+          aciertos++;
+        } else {
+          input.classList.add("incorrect");
+        }
+      });
+
+      document.getElementById("scoreText").innerText = `${aciertos} / ${inputs.length}`;
+
+      const feedback = document.getElementById("feedback");
+
+      if (aciertos === inputs.length) {
+        feedback.innerText = "¡Muy bien! Has completado correctamente el texto. 🎉";
+        feedback.style.color = "#15803d";
+
+        if (!resultadoEnviado) {
+          resultadoEnviado = true;
+          await enviarResultadoEjercicio(
+            "A1 - Conectores rutina diaria",
+            `${aciertos}/${inputs.length}`,
+            "Resultado final"
+          );
+          await registrarProgreso("C.Conectores A1: rutina diaria");
+        }
+      } else {
+        feedback.innerText = "Revisa los huecos marcados en rojo.";
+        feedback.style.color = "#b91c1c";
+      }
+    }
+
+    function mostrarSolucion() {
+      document.getElementById("solutionBox").classList.remove("hidden");
+    }
+
+    function reiniciar() {
+      inputs.forEach(id => {
+        const input = document.getElementById(id);
+        input.value = "";
+        input.classList.remove("correct", "incorrect");
+      });
+
+      document.getElementById("scoreText").innerText = `0 / ${inputs.length}`;
+      document.getElementById("feedback").innerText = "";
+      document.getElementById("solutionBox").classList.add("hidden");
+      selectedWord = "";
+      resultadoEnviado = false;
+
+      document.querySelectorAll(".word-bank-btn").forEach(b => {
+        b.classList.remove("ring-4", "ring-orange-300");
+      });
+    }
+
+    window.addEventListener("load", async () => {
+      await registrarEntradaEjercicio("A1 - Conectores rutina diaria");
+      buildWordBank();
+      attachInputEvents();
+    });
+  </script>
+</body>
+</html>

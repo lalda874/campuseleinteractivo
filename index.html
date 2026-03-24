@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus ELE - Panel de Control</title>
+    <link href="https://fonts.googleapis.com/css?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --p: #f97316; 
+            --s: #2c3e50; 
+            --bg: #fffaf5; 
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--bg);
+            margin: 0;
+        }
+
+        header {
+            background: var(--s);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            border-bottom: 5px solid var(--p);
+        }
+
+        /* --- Mejoras de Fluidez --- */
+        .reg-box, .card, .filter-btn, .btn-play {
+            transition: all 0.3s ease;
+        }
+
+        .reg-box {
+            max-width: 400px;
+            margin: 20px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .reg-box input {
+            padding: 12px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            outline: none;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .reg-box input:focus {
+            border-color: var(--p);
+        }
+
+        .btn-reg, .btn-play {
+            background: var(--p);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+        }
+
+        .btn-reg:active, .btn-play:active {
+            transform: scale(0.96);
+        }
+
+        #panel {
+            display: none;
+            max-width: 1100px;
+            margin: 20px auto;
+        }
+
+        .filters {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 18px;
+            border: 2px solid var(--s);
+            background: transparent;
+            cursor: pointer;
+            border-radius: 20px;
+            font-weight: 600;
+            color: var(--s);
+        }
+
+        .filter-btn.active {
+            background: var(--s);
+            color: white;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
+            position: relative;
+        }
+
+        .card:hover:not(.locked) {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+
+        .card.locked {
+            opacity: 0.5;
+            filter: grayscale(0.8);
+        }
+
+        .card-body { padding: 20px; }
+
+        .badge {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: #fff7ed;
+            color: var(--p);
+            font-weight: bold;
+            border: 1px solid var(--p);
+            display: inline-block;
+        }
+
+        .status-tag {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 0.7rem;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .status-open { background: #10b981; }
+        .status-closed { background: #ef4444; }
+
+        .btn-play {
+            display: block;
+            width: 100%;
+            text-align: center;
+            background: var(--s);
+            text-decoration: none;
+            box-sizing: border-box;
+        }
+
+        .btn-play:hover { background: var(--p); }
+
+        .card.locked .btn-play {
+            background: #ccc;
+            pointer-events: none;
+            cursor: default;
+        }
+
+        #welcomeMsg {
+            text-align: center;
+            color: var(--s);
+            font-weight: 600;
+            font-size: 1.2rem;
+            margin: 10px 0;
+        }
+
+        .small-note {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Campus ELE Interactiva</h1>
+        <p>Aprende a tu ritmo, nivel por nivel</p>
+    </header>
+
+    <div class="reg-box" id="loginBox">
+        <input type="text" id="usuario" placeholder="Usuario">
+        <input type="password" id="codigo" placeholder="Contraseña">
+        <button class="btn-reg" onclick="loginUsuario()">Acceder</button>
+        <p id="loginMsg" class="small-note"></p>
+    </div>
+
+    <div id="panel">
+        <p id="welcomeMsg"></p>
+        <div class="filters">
+            <button class="filter-btn active" onclick="filtrar('TODOS', this)">Todos</button>
+            <button class="filter-btn" onclick="filtrar('A1', this)">Nivel A1</button>
+            <button class="filter-btn" onclick="filtrar('A2', this)">Nivel A2</button>
+            <button class="filter-btn" onclick="filtrar('B1', this)">Nivel B1</button>
+        </div>
+        <div class="grid" id="container"></div>
+    </div>
+
+    <script>
+        const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyt4Bmol2cThS30X6vnvvcem9DKET3wFWxHDi4ggALV2sOqAA8iLCCACsGd_TCk2vpm/exec";
+
+        const actividades = [
+            { titulo: "A. Verbos reflexivos", nivel: "A1", archivo: "A.verbos-reflexivos.html", abierta: true, desc: "Elige el pronombre reflexivo correcto en cada frase." },
+            { titulo: "B. Conectores básicos", nivel: "A1", archivo: "B.conectores-basicos-a1.html", abierta: true, desc: "Empareja conectores en español con su traducción en francés." },
+            { titulo: "C. Conectores rutina", nivel: "A1", archivo: "C.conectores-rutina-al.html", abierta: true, desc: "Completa un texto sobre la rutina diaria." },
+            { titulo: "D. Conectores A1 Plus", nivel: "A1", archivo: "D.conectores-a1-plus.html", abierta: true, desc: "Une conectores en español y francés mediante líneas." },
+            { titulo: "F. Memoria alimentos", nivel: "A1", archivo: "F.memoria-alimentos.html", abierta: true, desc: "Relaciona palabras e imágenes en un juego de memoria." },
+            { titulo: "G. Frutas", nivel: "A1", archivo: "G.frutas-ele.html", abierta: true, desc: "Ordena las letras para escribir correctamente nombres de frutas." }
+        ];
+
+        async function loginUsuario() {
+            const usuario = document.getElementById("usuario").value.trim();
+            const codigo = document.getElementById("codigo").value.trim();
+            const msg = document.getElementById("loginMsg");
+
+            if (!usuario || !codigo) {
+                msg.innerText = "Completa ambos campos.";
+                return;
+            }
+
+            msg.innerText = "Validando...";
+
+            try {
+                const response = await fetch(`${WEBAPP_URL}?action=login&usuario=${encodeURIComponent(usuario)}&codigo=${encodeURIComponent(codigo)}`);
+                const data = await response.json();
+
+                if (data.ok) {
+                    sessionStorage.setItem("alumnoELE", JSON.stringify(data.user));
+                    mostrarPanel(data.user);
+                } else {
+                    msg.innerText = data.error || "Datos incorrectos.";
+                }
+            } catch (err) {
+                msg.innerText = "Error de conexión.";
+            }
+        }
+
+        function mostrarPanel(user) {
+            document.getElementById("loginBox").style.display = "none";
+            document.getElementById("panel").style.display = "block";
+            document.getElementById("welcomeMsg").innerText = `¡Hola ${user.nombre || ""} ${user.apellido || ""}!`;
+            cargarActividades("TODOS");
+        }
+
+        function filtrar(nivel, btn) {
+            document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            cargarActividades(nivel);
+        }
+
+        async function cargarActividades(filtro = "TODOS") {
+            const container = document.getElementById("container");
+            const datos = JSON.parse(sessionStorage.getItem("alumnoELE"));
+            
+            // Filtrado inmediato
+            const lista = filtro === "TODOS" ? actividades : actividades.filter(a => a.nivel === filtro);
+
+            // Intentar obtener progreso en segundo plano para no bloquear
+            let progresos = [];
+            try {
+                const resp = await fetch(`${WEBAPP_URL}?action=getProgreso`);
+                const data = await resp.json();
+                if (Array.isArray(data)) {
+                    progresos = data.slice(1).map(r => ({ usuario: r[0], actividad: r[1] }));
+                }
+            } catch (e) { console.warn("No se pudo cargar el progreso real."); }
+
+            container.innerHTML = lista.map(a => {
+                const hecho = datos && progresos.some(p => p.usuario === datos.usuarioReal && p.actividad === a.titulo);
+                
+                return `
+                    <div class="card ${a.abierta ? "" : "locked"}">
+                        <div class="card-body">
+                            <span class="status-tag ${hecho ? 'status-open' : (a.abierta ? 'status-open' : 'status-closed')}">
+                                ${hecho ? "HECHO" : (a.abierta ? "ABIERTA" : "CERRADA")}
+                            </span>
+                            <span class="badge">${a.nivel}</span>
+                            <h3 style="margin:15px 0 10px 0">${a.titulo}</h3>
+                            <p style="font-size:0.85rem;color:#666">${a.desc}</p>
+                        </div>
+                        ${a.abierta 
+                            ? `<button class="btn-play" onclick="abrirActividad('${a.titulo}','${a.archivo}')">${hecho ? "Rehacer" : "¡Empezar!"}</button>`
+                            : `<button class="btn-play" disabled style="background:#ccc">Próximamente</button>`
+                        }
+                    </div>
+                `;
+            }).join("");
+        }
+
+        async function abrirActividad(titulo, archivo) {
+            const datos = JSON.parse(sessionStorage.getItem("alumnoELE"));
+            if (!datos) return alert("Inicia sesión primero.");
+
+            // Registro "silencioso" para no retrasar al usuario
+            fetch(WEBAPP_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ type: "log", usuario: datos.usuarioReal, actividad: titulo, tipo: "Acceso" })
+            });
+
+            // Redirección inmediata
+            window.location.href = archivo;
+        }
+
+        window.onload = () => {
+            const datos = JSON.parse(sessionStorage.getItem("alumnoELE"));
+            if (datos) mostrarPanel(datos);
+        };
+    </script>
+</body>
+</html>

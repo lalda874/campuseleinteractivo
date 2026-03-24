@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Conectores español-francés</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: linear-gradient(180deg, #fff7ed 0%, #fffbf5 100%); }
+    .card-col {
+      background: white;
+      border-radius: 24px;
+      padding: 20px;
+      border: 2px solid #ffedd5;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    }
+    .word-btn {
+      width: 100%;
+      text-align: left;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      border-radius: 16px;
+      font-weight: 700;
+      border: 2px solid #fed7aa;
+      background: #fff;
+      color: #7c2d12;
+      transition: all 0.2s ease;
+      position: relative;
+      z-index: 2;
+    }
+    .word-btn:hover { background: #fff7ed; transform: translateY(-1px); }
+    .word-btn.selected {
+      background: #ffedd5;
+      border-color: #fb923c;
+      box-shadow: 0 0 0 4px rgba(251, 146, 60, 0.18);
+    }
+    .word-btn.correct {
+      background: #dcfce7;
+      border-color: #22c55e;
+      color: #166534;
+    }
+    .word-btn.disabled { pointer-events: none; opacity: 0.95; }
+    .shake { animation: shake 0.35s ease; }
+
+    .toast-wrap {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .toast {
+      background: white;
+      border-left: 6px solid #f97316;
+      color: #7c2d12;
+      padding: 12px 16px;
+      border-radius: 14px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+      font-weight: 700;
+      min-width: 220px;
+      animation: fadeIn 0.25s ease;
+    }
+    .toast.success { border-left-color: #16a34a; color: #166534; }
+    .toast.error { border-left-color: #dc2626; color: #991b1b; }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 18px;
+      background: #fed7aa;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #fb923c, #f97316);
+      transition: width 0.35s ease;
+    }
+    .hidden { display: none !important; }
+
+    #linesSvg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .pair-line {
+      stroke: #22c55e;
+      stroke-width: 4;
+      stroke-linecap: round;
+      opacity: 0.9;
+    }
+
+    .confetti {
+      position: fixed;
+      width: 12px;
+      height: 12px;
+      top: -20px;
+      border-radius: 2px;
+      opacity: 0.9;
+      animation: fall linear forwards;
+      z-index: 60;
+    }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fall {
+      to {
+        transform: translateY(110vh) rotate(720deg);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body class="font-sans text-stone-700 p-4 md:p-6">
+
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <div class="max-w-6xl mx-auto">
+    <div id="headerBlock" class="text-center mb-8">
+      <h1 class="text-4xl md:text-5xl font-extrabold text-orange-600 mb-3">
+        🔗 Conectores español-francés
+      </h1>
+      <p id="studentLabel" class="text-orange-500 font-bold mb-3"></p>
+      <p class="max-w-3xl mx-auto text-lg">
+        Empareja cada conector en español con su traducción en francés.
+      </p>
+    </div>
+
+    <div id="statsBlock" class="bg-white border-2 border-orange-100 rounded-3xl p-5 shadow mb-6">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-3">
+        <div class="font-bold text-orange-700">Progreso: <span id="progressText">0 / 13</span></div>
+        <div class="font-bold text-orange-700">Racha: <span id="streakText">0</span> 🔥</div>
+      </div>
+      <div class="progress-bar-bg">
+        <div id="progressBar" class="progress-bar-fill"></div>
+      </div>
+    </div>
+
+    <div id="gameWrap" class="relative">
+      <svg id="linesSvg"></svg>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="card-col">
+          <h2 class="text-2xl font-extrabold text-orange-700 mb-4">🇪🇸 Español</h2>
+          <div id="leftCol"></div>
+        </div>
+
+        <div class="card-col">
+          <h2 class="text-2xl font-extrabold text-orange-700 mb-4">🇫🇷 Français</h2>
+          <div id="rightCol"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="finalScreen" class="hidden mt-8 bg-white border-4 border-green-500 rounded-3xl p-8 text-center shadow-2xl">
+      <div class="text-7xl mb-4">🎉</div>
+      <h2 class="text-3xl font-extrabold text-green-700 mb-3">¡Actividad completada!</h2>
+      <p id="finalText" class="text-xl mb-3"></p>
+      <p id="finalTime" class="text-lg mb-6 text-stone-600"></p>
+      <div class="bg-green-100 text-green-800 font-bold rounded-2xl p-4 mb-6">
+        ✅ Tu resultado se ha enviado automáticamente a Google Sheet.
+      </div>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <button onclick="restartGame()" class="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-2xl font-bold">
+          Jugar de nuevo
+        </button>
+        <button onclick="volverAlCampus()" class="bg-stone-800 hover:bg-stone-900 text-white px-8 py-3 rounded-2xl font-bold">
+          Volver al campus
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyt4Bmol2cThS30X6vnvvcem9DKET3wFWxHDi4ggALV2sOqAA8iLCCACsGd_TCk2vpm/exec";
+
+    const PAIRS = [
+      { es: "y", fr: "et" },
+      { es: "o", fr: "ou" },
+      { es: "pero", fr: "mais" },
+      { es: "porque", fr: "parce que" },
+      { es: "también", fr: "aussi" },
+      { es: "además", fr: "en plus" },
+      { es: "entonces", fr: "alors" },
+      { es: "después", fr: "après" },
+      { es: "antes", fr: "avant" },
+      { es: "primero", fr: "d'abord" },
+      { es: "por ejemplo", fr: "par exemple" },
+      { es: "por eso", fr: "c'est pourquoi" },
+      { es: "finalmente", fr: "finalement" }
+    ];
+
+    const datos = JSON.parse(sessionStorage.getItem("alumnoELE")) || {};
+    const usuarioActual = datos.usuarioReal || "Anónimo";
+    const nombreCompleto = `${datos.nombre || ""} ${datos.apellido || ""}`.trim();
+
+    document.getElementById("studentLabel").innerText =
+      `Estudiante: ${nombreCompleto || usuarioActual}`;
+
+    let selectedLeft = null;
+    let selectedRight = null;
+    let matchedCount = 0;
+    let streak = 0;
+    let bestStreak = 0;
+    let attempts = 0;
+    let sent = false;
+    let startTime = Date.now();
+    let currentPairs = [];
+
+    function enviarASheet(payload) {
+      return fetch(WEBAPP_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify(payload)
+      })
+      .then(r => r.json())
+      .then(res => {
+        console.log("Respuesta Apps Script:", res);
+        return res;
+      })
+      .catch(error => {
+        console.error("Error al enviar:", error);
+        return { ok: false, error: String(error) };
+      });
+    }
+
+    async function registrarEntradaEjercicio(nombreActividad) {
+      await enviarASheet({
+        type: "log",
+        usuario: usuarioActual,
+        actividad: nombreActividad,
+        tipo: "Entrada",
+        detalle: "Inicio"
+      });
+    }
+
+    async function enviarResultadoEjercicio(nombreActividad, nota, detalle) {
+      await enviarASheet({
+        type: "nota",
+        usuario: usuarioActual,
+        actividad: nombreActividad,
+        nota: nota,
+        detalle: detalle
+      });
+    }
+
+    async function registrarProgreso(nombreActividad) {
+      await enviarASheet({
+        type: "progreso",
+        usuario: usuarioActual,
+        actividad: nombreActividad
+      });
+    }
+
+    function volverAlCampus() {
+      window.location.href = "index.html";
+    }
+
+    function shuffle(array) {
+      return [...array].sort(() => Math.random() - 0.5);
+    }
+
+    function showToast(message, type = "") {
+      const wrap = document.getElementById("toastWrap");
+      const toast = document.createElement("div");
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      wrap.appendChild(toast);
+      setTimeout(() => toast.remove(), 2200);
+    }
+
+    function updateStats() {
+      document.getElementById("progressText").textContent = `${matchedCount} / ${currentPairs.length}`;
+      document.getElementById("streakText").textContent = streak;
+      document.getElementById("progressBar").style.width = `${(matchedCount / currentPairs.length) * 100}%`;
+    }
+
+    function buildGame() {
+      currentPairs = shuffle(PAIRS).map((p, index) => ({ ...p, id: index }));
+      const left = shuffle(currentPairs);
+      const right = shuffle(currentPairs);
+
+      const leftCol = document.getElementById("leftCol");
+      const rightCol = document.getElementById("rightCol");
+      const svg = document.getElementById("linesSvg");
+
+      leftCol.innerHTML = "";
+      rightCol.innerHTML = "";
+      svg.innerHTML = "";
+
+      left.forEach(item => {
+        const btn = document.createElement("button");
+        btn.className = "word-btn";
+        btn.textContent = item.es;
+        btn.dataset.id = item.id;
+        btn.id = `left-${item.id}`;
+        btn.onclick = () => selectItem("left", item.id);
+        leftCol.appendChild(btn);
+      });
+
+      right.forEach(item => {
+        const btn = document.createElement("button");
+        btn.className = "word-btn";
+        btn.textContent = item.fr;
+        btn.dataset.id = item.id;
+        btn.id = `right-${item.id}`;
+        btn.onclick = () => selectItem("right", item.id);
+        rightCol.appendChild(btn);
+      });
+
+      resizeSvg();
+      updateStats();
+    }
+
+    function resizeSvg() {
+      const wrap = document.getElementById("gameWrap");
+      const svg = document.getElementById("linesSvg");
+      svg.setAttribute("width", wrap.offsetWidth);
+      svg.setAttribute("height", wrap.offsetHeight);
+    }
+
+    function clearTemporarySelection() {
+      if (selectedLeft !== null) document.getElementById(`left-${selectedLeft}`)?.classList.remove("selected");
+      if (selectedRight !== null) document.getElementById(`right-${selectedRight}`)?.classList.remove("selected");
+      selectedLeft = null;
+      selectedRight = null;
+    }
+
+    function markCorrect(id) {
+      const leftBtn = document.getElementById(`left-${id}`);
+      const rightBtn = document.getElementById(`right-${id}`);
+
+      leftBtn.classList.remove("selected");
+      rightBtn.classList.remove("selected");
+
+      leftBtn.classList.add("correct", "disabled");
+      rightBtn.classList.add("correct", "disabled");
+
+      leftBtn.disabled = true;
+      rightBtn.disabled = true;
+
+      drawLine(leftBtn, rightBtn);
+    }
+
+    function drawLine(leftBtn, rightBtn) {
+      const svg = document.getElementById("linesSvg");
+      const wrapRect = document.getElementById("gameWrap").getBoundingClientRect();
+      const leftRect = leftBtn.getBoundingClientRect();
+      const rightRect = rightBtn.getBoundingClientRect();
+
+      const x1 = leftRect.right - wrapRect.left - 8;
+      const y1 = leftRect.top + leftRect.height / 2 - wrapRect.top;
+      const x2 = rightRect.left - wrapRect.left + 8;
+      const y2 = rightRect.top + rightRect.height / 2 - wrapRect.top;
+
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", x1);
+      line.setAttribute("y1", y1);
+      line.setAttribute("x2", x2);
+      line.setAttribute("y2", y2);
+      line.setAttribute("class", "pair-line");
+      svg.appendChild(line);
+    }
+
+    function shakePair(idLeft, idRight) {
+      const leftBtn = document.getElementById(`left-${idLeft}`);
+      const rightBtn = document.getElementById(`right-${idRight}`);
+      leftBtn.classList.add("shake");
+      rightBtn.classList.add("shake");
+      setTimeout(() => {
+        leftBtn.classList.remove("shake", "selected");
+        rightBtn.classList.remove("shake", "selected");
+      }, 350);
+    }
+
+    function selectItem(side, id) {
+      const btn = document.getElementById(`${side}-${id}`);
+      if (btn.disabled) return;
+
+      if (side === "left") {
+        if (selectedLeft !== null) document.getElementById(`left-${selectedLeft}`)?.classList.remove("selected");
+        selectedLeft = id;
+        btn.classList.add("selected");
+      } else {
+        if (selectedRight !== null) document.getElementById(`right-${selectedRight}`)?.classList.remove("selected");
+        selectedRight = id;
+        btn.classList.add("selected");
+      }
+
+      if (selectedLeft !== null && selectedRight !== null) {
+        attempts++;
+
+        if (selectedLeft === selectedRight) {
+          matchedCount++;
+          streak++;
+          if (streak > bestStreak) bestStreak = streak;
+
+          markCorrect(selectedLeft);
+          showToast("¡Correcto! ✓", "success");
+          clearTemporarySelection();
+          updateStats();
+
+          if (matchedCount === currentPairs.length) finishGame();
+        } else {
+          streak = 0;
+          showToast("No coincide. Vuelve a intentarlo.", "error");
+          const wrongLeft = selectedLeft;
+          const wrongRight = selectedRight;
+          setTimeout(() => {
+            shakePair(wrongLeft, wrongRight);
+            clearTemporarySelection();
+            updateStats();
+          }, 100);
+        }
+      }
+    }
+
+    function launchConfetti() {
+      const colors = ["#f97316", "#22c55e", "#3b82f6", "#eab308", "#ec4899"];
+      for (let i = 0; i < 120; i++) {
+        const c = document.createElement("div");
+        c.className = "confetti";
+        c.style.left = Math.random() * 100 + "vw";
+        c.style.background = colors[Math.floor(Math.random() * colors.length)];
+        c.style.animationDuration = (2 + Math.random() * 2) + "s";
+        c.style.opacity = 0.7 + Math.random() * 0.3;
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 4500);
+      }
+    }
+
+    function formatTime(ms) {
+      const total = Math.round(ms / 1000);
+      const min = Math.floor(total / 60);
+      const sec = total % 60;
+      return `${min} min ${sec} s`;
+    }
+
+    async function sendResult() {
+      if (sent) return;
+      sent = true;
+
+      const elapsed = Date.now() - startTime;
+      const errors = attempts - matchedCount;
+      let score = Math.max(0, 10 - errors * 0.5);
+      score = Math.round(score * 100) / 100;
+
+      await enviarResultadoEjercicio(
+        "A1 - Conectores español-francés",
+        `${score}/10`,
+        `${Math.round((matchedCount / currentPairs.length) * 100)}% | intentos:${attempts} | errores:${errors} | racha máxima:${bestStreak} | tiempo:${formatTime(elapsed)}`
+      );
+
+      await registrarProgreso("B.Conectores básicos español-francés");
+    }
+
+    async function finishGame() {
+      const elapsed = Date.now() - startTime;
+      const errors = attempts - matchedCount;
+      let score = Math.max(0, 10 - errors * 0.5);
+      score = Math.round(score * 100) / 100;
+
+      await sendResult();
+
+      document.getElementById("statsBlock").classList.add("hidden");
+      document.getElementById("gameWrap").classList.add("hidden");
+      document.getElementById("finalScreen").classList.remove("hidden");
+      document.getElementById("finalText").textContent =
+        `Has completado ${matchedCount} de ${currentPairs.length} parejas. Nota: ${score}/10. Racha máxima: ${bestStreak}.`;
+      document.getElementById("finalTime").textContent =
+        `Tiempo total: ${formatTime(elapsed)}. Intentos realizados: ${attempts}. Errores: ${errors}.`;
+
+      launchConfetti();
+    }
+
+    function restartGame() {
+      selectedLeft = null;
+      selectedRight = null;
+      matchedCount = 0;
+      streak = 0;
+      bestStreak = 0;
+      attempts = 0;
+      sent = false;
+      startTime = Date.now();
+
+      document.getElementById("statsBlock").classList.remove("hidden");
+      document.getElementById("gameWrap").classList.remove("hidden");
+      document.getElementById("finalScreen").classList.add("hidden");
+
+      buildGame();
+    }
+
+    window.addEventListener("resize", () => resizeSvg());
+
+    window.addEventListener("load", async () => {
+      await registrarEntradaEjercicio("A1 - Conectores español-francés");
+      buildGame();
+    });
+  </script>
+</body>
+</html>
