@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Juego Wordwall - Alimentos</title>
+
+<style>
+body { font-family: Arial; background:#f5f7fa; text-align:center; padding:20px; }
+.container { max-width:900px; margin:auto; background:white; padding:20px; border-radius:10px; }
+iframe { border-radius:10px; }
+button { margin-top:20px; padding:10px 15px; border:none; background:#2c3e50; color:white; border-radius:5px; cursor:pointer; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h1>G. Juego Wordwall</h1>
+<p>Practica el vocabulario de los alimentos.</p>
+
+<iframe style="max-width:100%" 
+src="https://wordwall.net/fr/embed/b5c47e1adb9b4ece87aefdda844ad2f6?themeId=22&templateId=71&fontStackId=0" 
+width="100%" height="450" frameborder="0" allowfullscreen>
+</iframe>
+
+<br>
+
+<button onclick="volver()">Volver al campus</button>
+</div>
+
+<script>
+function volver(){
+    window.location.href = "index.html";
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Completa las frases</title>
+
+<style>
+body { font-family: Arial; background:#f5f7fa; padding:20px; }
+.container { max-width:800px; margin:auto; background:white; padding:20px; border-radius:10px; }
+input { width:100%; padding:8px; margin-top:5px; }
+button { margin-top:15px; padding:10px; border:none; border-radius:5px; cursor:pointer; }
+.check { background:#4CAF50; color:white; }
+.back { background:#2c3e50; color:white; margin-left:10px; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h1>H. Completa las frases - alimentos</h1>
+
+<p>Completa con un alimento:</p>
+
+<p>1. Para desayunar, tomo <input id="q1"></p>
+<p>2. Mi comida favorita es <input id="q2"></p>
+<p>3. Nunca como <input id="q3"></p>
+<p>4. Para cenar, prefiero <input id="q4"></p>
+
+<button class="check" onclick="check()">Comprobar</button>
+<button class="back" onclick="volver()">Volver al campus</button>
+
+<p id="resultado"></p>
+</div>
+
+<script>
+function check(){
+    let respuestas = [
+        q1.value, q2.value, q3.value, q4.value
+    ];
+    
+    let completas = respuestas.filter(r => r.trim() !== "").length;
+    
+    if(completas === 4){
+        resultado.innerText = "¡Muy bien!";
+    } else {
+        resultado.innerText = "Completa todas las frases.";
+    }
+}
+
+function volver(){
+    window.location.href = "index.html";
+}
+</script>
+
+</body>
+</html>
